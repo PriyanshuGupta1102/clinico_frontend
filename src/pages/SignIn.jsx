@@ -35,7 +35,7 @@ const SignIn = () => {
       if (!otpSent) {
         const loadToast = toast.loading("Connecting to secure server...");
         try {
-          const res = await axios.post('http://localhost:5000/api/send-otp', { email });
+          const res = await axios.post('https://clinico-backend-7a06.onrender.com/api/send-otp', { email });
           toast.dismiss(loadToast);
           if (res.data.success) {
             setOtpSent(true);
