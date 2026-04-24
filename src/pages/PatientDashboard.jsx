@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import Sidebar from '../components/Sidebar';
 import { useAuth } from '../context/AuthContext';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -10,6 +11,7 @@ import {
 import toast, { Toaster } from 'react-hot-toast';
 
 const PatientDashboard = () => {
+  const navigate = useNavigate();
   const { user, setUser } = useAuth();
   const [activeTab, setActiveTab] = useState('dashboard');
   const [showEditModal, setShowEditModal] = useState(false);
@@ -184,7 +186,7 @@ const PatientDashboard = () => {
                 {myAppointments.map((app, i) => (
                     <div key={i} className="flex items-center justify-between p-8 bg-white rounded-[3rem] border shadow-xl">
                         <div className="flex items-center gap-6"><div className="w-16 h-16 bg-blue-600 text-white rounded-3xl flex items-center justify-center font-black italic">APT</div><div><p className="text-xl font-black text-slate-800">Dr. {app.name}</p><p className="text-sm text-slate-400 font-bold italic tracking-tighter uppercase">{app.spec} • {app.date} at {app.time}</p></div></div>
-                        <button onClick={() => window.open('/video-visit', '_blank')} className="bg-blue-600 text-white px-8 py-4 rounded-2xl font-black shadow-xl hover:bg-slate-900 transition flex items-center gap-2 tracking-tighter italic">Join Video Call <Video size={18}/></button>
+                        <button onClick={() => navigate('/video-visit')} className="bg-blue-600 text-white px-8 py-4 rounded-2xl font-black shadow-xl hover:bg-slate-900 transition flex items-center gap-2 tracking-tighter italic">Join Video Call <Video size={18}/></button>
                     </div>
                 ))}
             </motion.div>

@@ -1,9 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Mic, MicOff, Video, VideoOff, PhoneOff, Send, User, MessageSquare, Loader2 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import toast, { Toaster } from 'react-hot-toast';
 
 const VideoVisit = () => {
+  const navigate = useNavigate();
   const { user } = useAuth();
   const [isMuted, setIsMuted] = useState(false);
   const [isVideoOff, setIsVideoOff] = useState(false);
@@ -125,7 +127,7 @@ const VideoVisit = () => {
             <button onClick={() => setIsVideoOff(!isVideoOff)} className={`p-6 rounded-full transition-all hover:scale-110 ${isVideoOff ? 'bg-red-500 shadow-red-500/20' : 'bg-white/5 text-white hover:bg-white/10'}`} title="Toggle Video">
                 {isVideoOff ? <VideoOff/> : <Video/>}
             </button>
-            <button onClick={() => window.close()} className="p-6 bg-red-600 rounded-full text-white hover:scale-125 transition-all shadow-[0_0_40px_rgba(220,38,38,0.4)]" title="End Visit">
+            <button onClick={() => navigate(user?.role === 'Doctor' ? '/doctor-dashboard' : '/patient-dashboard')} className="p-6 bg-red-600 rounded-full text-white hover:scale-125 transition-all shadow-[0_0_40px_rgba(220,38,38,0.4)]" title="End Visit">
                 <PhoneOff/>
             </button>
         </div>

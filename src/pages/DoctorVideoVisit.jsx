@@ -1,9 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Mic, MicOff, Video, VideoOff, PhoneOff, Send, User, MessageSquare, Loader2 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import toast, { Toaster } from 'react-hot-toast';
 
 const DoctorVideoVisit = () => {
+  const navigate = useNavigate();
   const { user } = useAuth();
   const [isMuted, setIsMuted] = useState(false);
   const [isVideoOff, setIsVideoOff] = useState(false);
@@ -125,7 +127,7 @@ const DoctorVideoVisit = () => {
         <div className="absolute bottom-12 flex gap-8 bg-slate-900/40 backdrop-blur-3xl p-8 rounded-[3.5rem] border border-white/10 shadow-2xl">
             <button onClick={() => setIsMuted(!isMuted)} className={`p-6 rounded-full transition-all ${isMuted ? 'bg-red-500' : 'bg-white/5 text-white'}`}><Mic/></button>
             <button onClick={() => setIsVideoOff(!isVideoOff)} className={`p-6 rounded-full transition-all ${isVideoOff ? 'bg-red-500' : 'bg-white/5 text-white'}`}><Video/></button>
-            <button onClick={() => window.close()} className="p-6 bg-red-600 rounded-full text-white hover:scale-110 transition shadow-[0_0_30px_rgba(220,38,38,0.4)]"><PhoneOff/></button>
+            <button onClick={() => navigate('/doctor-dashboard')} className="p-6 bg-red-600 rounded-full text-white hover:scale-110 transition shadow-[0_0_30px_rgba(220,38,38,0.4)]"><PhoneOff/></button>
         </div>
       </div>
 

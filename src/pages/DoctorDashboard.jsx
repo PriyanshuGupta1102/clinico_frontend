@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import Sidebar from '../components/Sidebar';
 import { useAuth } from '../context/AuthContext';
 import { Mail, X, Edit3, Clock, History, Phone, ShieldCheck, Bell, Eye, Lock, Smartphone, User, Star, Award, Users } from 'lucide-react';
@@ -6,6 +7,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import toast, { Toaster } from 'react-hot-toast';
 
 const DoctorDashboard = () => {
+  const navigate = useNavigate();
   const { user, setUser } = useAuth();
   const [activeTab, setActiveTab] = useState('details');
   const [showEditModal, setShowEditModal] = useState(false);
@@ -26,7 +28,9 @@ const DoctorDashboard = () => {
     setShowEditModal(false);
   };
 
-  const startVideoVisit = () => window.open('/doctor-video-visit', '_blank', 'width=1400,height=900');
+  const startVideoVisit = () => {
+    navigate('/doctor-video-visit');
+  };
 
   const doctorImg = user?.gender === 'Male' 
     ? "https://images.unsplash.com/photo-1612349317150-e413f6a5b16d?w=200" 
