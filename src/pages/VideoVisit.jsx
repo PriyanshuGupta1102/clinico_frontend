@@ -1,11 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { Mic, MicOff, Video, VideoOff, PhoneOff, Send, User, Loader2, Camera, AlertCircle } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import toast, { Toaster } from 'react-hot-toast';
 
 const VideoVisit = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { user } = useAuth();
   const [isMuted, setIsMuted] = useState(false);
   const [isVideoOff, setIsVideoOff] = useState(false);
@@ -20,7 +21,9 @@ const VideoVisit = () => {
   const myRole = user?.role || 'Patient';
   const myName = user?.firstName || user?.name || 'Guest';
   
-  const patientData = {
+  const passedPatient = location.state?.patient;
+  
+  const patientData = passedPatient || {
     name: 'Rahul Sharma',
     image: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200&h=200&fit=crop&crop=faces'
   };

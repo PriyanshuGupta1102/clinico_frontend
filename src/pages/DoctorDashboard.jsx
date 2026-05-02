@@ -140,8 +140,13 @@ const DoctorDashboard = () => {
     }
   };
 
-  const startVideoVisit = () => {
-    navigate('/doctor-video-visit');
+  const startVideoVisit = (appointment) => {
+    const patientInfo = {
+      name: appointment.patientName,
+      id: appointment.patientId,
+      image: `https://ui-avatars.com/api/?name=${encodeURIComponent(appointment.patientName)}&background=random&color=fff`
+    };
+    navigate('/doctor-video-visit', { state: { patient: patientInfo } });
   };
 
   const doctorImg = profileImage || (doctorData.gender === 'Male' || doctorData.gender === 'Female' 
@@ -249,7 +254,7 @@ const DoctorDashboard = () => {
                       <span className={`px-5 py-2 rounded-full text-[9px] font-black uppercase tracking-widest ${app.status === 'confirmed' ? 'bg-emerald-100 text-emerald-700 border border-emerald-200' : 'bg-slate-100 text-slate-700'}`}>
                         {app.status || 'Confirmed'}
                       </span>
-                      <button onClick={startVideoVisit} className="bg-blue-600 text-white px-8 py-4 rounded-2xl font-black shadow-xl hover:bg-slate-900 transition flex items-center gap-2 italic tracking-tighter">Start Interaction <Phone size={16}/></button>
+                      <button onClick={() => startVideoVisit(app)} className="bg-blue-600 text-white px-8 py-4 rounded-2xl font-black shadow-xl hover:bg-slate-900 transition flex items-center gap-2 italic tracking-tighter">Start Interaction <Phone size={16}/></button>
                     </div>
                   </div>
                 ))
