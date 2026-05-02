@@ -15,21 +15,26 @@ const VideoVisit = () => {
   const [isWaiting, setIsWaiting] = useState(false);
   const [permissionGranted, setPermissionGranted] = useState(false);
   const [permissionDenied, setPermissionDenied] = useState(false);
+  const [isListening, setIsListening] = useState(false);
   const videoRef = useRef(null);
   const hasGreeted = useRef(false);
+  const recognitionRef = useRef(null);
 
   const myRole = user?.role || 'Patient';
   const myName = user?.firstName || user?.name || 'Guest';
   
   const passedPatient = location.state?.patient;
   
+  const doctorName = user?.firstName ? `Dr. ${user.firstName}` : 'Dr. Sarah';
+  const doctorImage = user?.profileImage || 'https://images.unsplash.com/photo-1612349317150-e413f6a5b16d?w=200&h=200&fit=crop&crop=faces';
+  
   const patientData = passedPatient || {
-    name: 'Rahul Sharma',
-    image: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200&h=200&fit=crop&crop=faces'
+    name: myRole === 'Patient' ? myName : 'Rahul Sharma',
+    image: `https://ui-avatars.com/api/?name=${encodeURIComponent(myRole === 'Patient' ? myName : 'Rahul Sharma')}&background=random&color=fff`
   };
   
-  const otherName = myRole === 'Doctor' ? `${patientData.name} (Patient)` : 'Dr. Sarah Smith';
-  const otherImage = myRole === 'Doctor' ? patientData.image : null;
+  const otherName = myRole === 'Doctor' ? `${patientData.name} (Patient)` : doctorName;
+  const otherImage = myRole === 'Doctor' ? patientData.image : doctorImage;
 
   const speakText = (text) => {
     window.speechSynthesis.cancel();
@@ -61,10 +66,39 @@ const VideoVisit = () => {
       setPermissionGranted(true);
       toast.success("Camera & Microphone permissions granted!");
       
+      if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        recognitionRef.current = new SpeechRecognition();
+        recognitionRef.current.continuous = false;
+        recognitionRef.current.interimResults = true;
+        recognitionRef.current.lang = 'en-US';
+        
+        recognitionRef.current.onresult = (event) => {
+          const transcript = Array.from(event.results)
+            .map(result => result[0])
+            .map(result => result.transcript)
+            .join('');
+          
+          if (event.results[0].isFinal) {
+            setInput(transcript);
+            setIsListening(false);
+          }
+        };
+        
+        recognitionRef.current.onerror = (event) => {
+          console.log('Speech recognition error:', event.error);
+          setIsListening(false);
+        };
+        
+        recognitionRef.current.onend = () => {
+          setIsListening(false);
+        };
+      }
+      
       if (!hasGreeted.current) {
         setTimeout(() => {
-          const greeting = `Hello ${myRole === 'Doctor' ? 'Rahul' : myName}, I am Dr. Sarah. How are you feeling today?`;
-          setMessages(prev => [...prev, { sender: 'Dr. Sarah', text: greeting }]);
+          const greeting = `Hello ${myRole === 'Doctor' ? patientData.name : myName}, I am ${doctorName}. How are you feeling today?`;
+          setMessages(prev => [...prev, { sender: doctorName, text: greeting }]);
           speakText(greeting);
           setIsWaiting(true);
         }, 3000);
@@ -119,6 +153,26 @@ const VideoVisit = () => {
     }
     setIsMuted(!isMuted);
     toast.success(isMuted ? "Microphone unmuted" : "Microphone muted");
+  };
+
+  const toggleSpeechRecognition = () => {
+    if (!recognitionRef.current) {
+      toast.error("Speech recognition not supported in this browser");
+      return;
+    }
+    
+    if (isListening) {
+      recognitionRef.current.stop();
+      setIsListening(false);
+    } else {
+      try {
+        recognitionRef.current.start();
+        setIsListening(true);
+        toast.success("Listening... Speak now");
+      } catch (err) {
+        console.log("Speech recognition error:", err);
+      }
+    }
   };
 
   const toggleVideo = () => {
@@ -259,11 +313,18 @@ const VideoVisit = () => {
 
         <div className="p-6 border-t bg-slate-50/50 flex flex-col gap-4">
             <div className="flex gap-3">
+                <button 
+                    onClick={toggleSpeechRecognition}
+                    disabled={!isWaiting}
+                    className={`p-5 rounded-[1.8rem] transition-all shadow-xl disabled:opacity-50 ${isListening ? 'bg-red-500 text-white animate-pulse' : 'bg-slate-200 text-slate-600 hover:bg-slate-300'}`}
+                >
+                    {isListening ? <MicOff size={22}/> : <Mic size={22}/>}
+                </button>
                 <input 
                     value={input} 
                     onChange={(e) => setInput(e.target.value)} 
                     onKeyPress={(e) => e.key === 'Enter' && handleResponse()}
-                    placeholder={isWaiting ? "Reply to the doctor..." : "Doctor is speaking..."}
+                    placeholder={isWaiting ? (isListening ? "Listening..." : "Reply to the doctor...") : "Doctor is speaking..."}
                     disabled={!isWaiting}
                     className="flex-1 p-5 bg-white border-2 border-slate-100 rounded-[2rem] outline-none font-bold text-sm focus:border-blue-600 transition-all shadow-inner disabled:opacity-50" 
                 />
