@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Mic, MicOff, Video, VideoOff, PhoneOff, Send, User, MessageSquare, Loader2 } from 'lucide-react';
+import { Mic, MicOff, Video, VideoOff, PhoneOff, Send, User, Loader2, Camera, AlertCircle } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import toast, { Toaster } from 'react-hot-toast';
 
@@ -12,48 +12,80 @@ const VideoVisit = () => {
   const [messages, setMessages] = useState([{ sender: 'System', text: 'Secure Line Established. Waiting for Doctor to start...' }]);
   const [input, setInput] = useState("");
   const [isWaiting, setIsWaiting] = useState(false);
+  const [permissionGranted, setPermissionGranted] = useState(false);
+  const [permissionDenied, setPermissionDenied] = useState(false);
   const videoRef = useRef(null);
   const hasGreeted = useRef(false);
 
-  // Identity logic
   const myRole = user?.role || 'Patient';
-  const myName = user?.firstName || 'Guest';
-  const otherName = myRole === 'Doctor' ? 'Rahul Sharma (Patient)' : 'Dr. Sarah Smith';
+  const myName = user?.firstName || user?.name || 'Guest';
+  
+  const patientData = {
+    name: 'Rahul Sharma',
+    image: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200&h=200&fit=crop&crop=faces'
+  };
+  
+  const otherName = myRole === 'Doctor' ? `${patientData.name} (Patient)` : 'Dr. Sarah Smith';
+  const otherImage = myRole === 'Doctor' ? patientData.image : null;
 
-  // 🔊 Voice Logic
   const speakText = (text) => {
-    window.speechSynthesis.cancel(); // Stop any previous speech
+    window.speechSynthesis.cancel();
     const speech = new SpeechSynthesisUtterance(text);
     speech.lang = 'en-US';
-    speech.rate = 0.9; // Professional slow rate
+    speech.rate = 0.9;
     window.speechSynthesis.speak(speech);
   };
 
-  useEffect(() => {
-    // 1. Camera Access with Hardware Check
-    async function startMedia() {
-      try {
-        const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
-        if (videoRef.current) videoRef.current.srcObject = stream;
-      } catch (err) {
-        console.log("Hardware not found, using simulation mode.");
+  const requestPermissions = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ 
+        video: { 
+          width: { ideal: 1280 },
+          height: { ideal: 720 },
+          facingMode: 'user'
+        }, 
+        audio: {
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: true
+        }
+      });
+      
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
       }
+      
+      setPermissionGranted(true);
+      toast.success("Camera & Microphone permissions granted!");
+      
+      if (!hasGreeted.current) {
+        setTimeout(() => {
+          const greeting = `Hello ${myRole === 'Doctor' ? 'Rahul' : myName}, I am Dr. Sarah. How are you feeling today?`;
+          setMessages(prev => [...prev, { sender: 'Dr. Sarah', text: greeting }]);
+          speakText(greeting);
+          setIsWaiting(true);
+        }, 3000);
+        hasGreeted.current = true;
+      }
+    } catch (err) {
+      console.error("Permission error:", err);
+      setPermissionDenied(true);
+      toast.error("Camera/Microphone permission denied. Please allow access in browser settings.");
     }
-    startMedia();
+  };
 
-    // 2. Sequential Interaction Logic
-    if (!hasGreeted.current) {
-      setTimeout(() => {
-        const greeting = `Hello ${myRole === 'Doctor' ? 'Rahul' : myName}, I am Dr. Sarah. How are you feeling today?`;
-        setMessages(prev => [...prev, { sender: 'Dr. Sarah', text: greeting }]);
-        speakText(greeting);
-        setIsWaiting(true); // Doctor is now waiting for patient to reply
-      }, 3000);
-      hasGreeted.current = true;
-    }
-  }, [myRole, myName]);
+  useEffect(() => {
+    requestPermissions();
+    
+    return () => {
+      if (videoRef.current && videoRef.current.srcObject) {
+        const tracks = videoRef.current.srcObject.getTracks();
+        tracks.forEach(track => track.stop());
+      }
+      window.speechSynthesis.cancel();
+    };
+  }, []);
 
-  // 3. Response Analysis Logic (When Patient Replies)
   const handleResponse = () => {
     if(!input) return;
     const patientMsg = input;
@@ -61,7 +93,6 @@ const VideoVisit = () => {
     setInput("");
     setIsWaiting(false);
 
-    // Doctor Analyzes and Suggests
     setTimeout(() => {
       let docReply = "I understand. Based on what you said, I recommend complete rest and Paracetamol 500mg. Please stay hydrated.";
       
@@ -74,34 +105,89 @@ const VideoVisit = () => {
     }, 3000);
   };
 
+  const toggleMute = () => {
+    if (videoRef.current && videoRef.current.srcObject) {
+      const audioTracks = videoRef.current.srcObject.getAudioTracks();
+      if (audioTracks.length > 0) {
+        audioTracks.forEach(track => {
+          track.enabled = isMuted;
+        });
+      }
+    }
+    setIsMuted(!isMuted);
+    toast.success(isMuted ? "Microphone unmuted" : "Microphone muted");
+  };
+
+  const toggleVideo = () => {
+    if (videoRef.current && videoRef.current.srcObject) {
+      const videoTracks = videoRef.current.srcObject.getVideoTracks();
+      if (videoTracks.length > 0) {
+        videoTracks.forEach(track => {
+          track.enabled = isVideoOff;
+        });
+      }
+    }
+    setIsVideoOff(!isVideoOff);
+    toast.success(isVideoOff ? "Camera turned on" : "Camera turned off");
+  };
+
   return (
     <div className="h-screen bg-slate-950 flex flex-col md:flex-row overflow-hidden font-sans">
       <Toaster position="top-center" />
 
-      {/* 1. SELF VIEW (Main Feed based on Role) */}
       <div className="w-full md:w-1/4 bg-slate-900 border-r border-white/10 p-6 flex flex-col items-center justify-center relative">
         <div className="w-full h-full rounded-[2.5rem] overflow-hidden bg-slate-800 border-2 border-white/5 relative flex items-center justify-center shadow-2xl">
-          <video ref={videoRef} autoPlay playsInline muted className={`w-full h-full object-cover ${isVideoOff ? 'hidden' : 'block'}`} />
-          {(isVideoOff || !videoRef.current?.srcObject) && (
+          {permissionDenied ? (
             <div className="text-center p-6">
-                <div className="w-20 h-20 bg-slate-700 rounded-full flex items-center justify-center mx-auto mb-4 border-2 border-white/10">
-                    <User size={40} className="text-white/20"/>
-                </div>
-                <p className="text-slate-500 font-bold text-[10px] uppercase tracking-widest leading-relaxed">
-                   {videoRef.current?.srcObject ? 'Video Paused' : 'Camera Hardware\nNot Detected'}
-                </p>
+              <AlertCircle size={60} className="text-red-500 mx-auto mb-4" />
+              <p className="text-red-400 font-bold text-lg mb-2">Permissions Required</p>
+              <p className="text-slate-500 text-sm mb-4">Please allow camera and microphone access</p>
+              <button 
+                onClick={requestPermissions}
+                className="bg-blue-600 text-white px-6 py-3 rounded-xl font-bold"
+              >
+                Grant Permissions
+              </button>
             </div>
+          ) : (
+            <>
+              <video 
+                ref={videoRef} 
+                autoPlay 
+                playsInline 
+                muted 
+                className={`w-full h-full object-cover ${isVideoOff ? 'hidden' : 'block'}`} 
+              />
+              {(isVideoOff || !permissionGranted) && (
+                <div className="text-center p-6">
+                  <div className="w-20 h-20 bg-slate-700 rounded-full flex items-center justify-center mx-auto mb-4 border-2 border-white/10">
+                      <Camera size={40} className="text-white/20"/>
+                  </div>
+                  <p className="text-slate-500 font-bold text-[10px] uppercase tracking-widest leading-relaxed">
+                     {permissionGranted ? 'Video Paused' : 'Requesting Camera Access...'}
+                  </p>
+                </div>
+              )}
+            </>
           )}
           <div className="absolute top-6 left-6 bg-blue-600/80 backdrop-blur-md px-4 py-1.5 rounded-2xl text-[9px] font-black text-white uppercase tracking-[0.2em] border border-white/10">LIVE: {myName} ({myRole})</div>
+          {isMuted && (
+            <div className="absolute top-6 right-6 bg-red-500/80 backdrop-blur-md px-3 py-1 rounded-xl text-[9px] font-black text-white uppercase tracking-[0.2em]">MUTED</div>
+          )}
         </div>
       </div>
 
-      {/* 2. COUNTERPART VIEW (Simulation) */}
       <div className="flex-1 relative flex items-center justify-center bg-slate-800 p-10">
         <div className="text-center">
-            <div className="w-56 h-56 bg-gradient-to-tr from-slate-700 to-slate-600 rounded-full mx-auto flex items-center justify-center border-8 border-white/5 shadow-[0_0_50px_rgba(0,0,0,0.3)] mb-8 overflow-hidden relative group">
-                <User size={100} className="text-white/10 group-hover:scale-110 transition-transform duration-700"/>
-                <div className="absolute inset-0 bg-blue-500/5 animate-pulse"></div>
+            <div className="w-56 h-56 rounded-full mx-auto flex items-center justify-center border-8 border-white/5 shadow-[0_0_50px_rgba(0,0,0,0.3)] mb-8 overflow-hidden relative group">
+                {otherImage ? (
+                  <img src={otherImage} alt="Patient" className="w-full h-full object-cover" />
+                ) : (
+                  <>
+                    <User size={100} className="text-white/10 group-hover:scale-110 transition-transform duration-700"/>
+                    <div className="absolute inset-0 bg-blue-500/5 animate-pulse"></div>
+                  </>
+                )}
             </div>
             <h2 className="text-white font-black text-3xl italic tracking-tighter">{otherName}</h2>
             <div className="flex items-center justify-center gap-3 mt-4">
@@ -119,21 +205,31 @@ const VideoVisit = () => {
             </div>
         </div>
 
-        {/* FLOATING CONTROLS */}
         <div className="absolute bottom-12 flex gap-8 bg-slate-900/40 backdrop-blur-3xl p-8 rounded-[3.5rem] border border-white/10 shadow-2xl">
-            <button onClick={() => setIsMuted(!isMuted)} className={`p-6 rounded-full transition-all hover:scale-110 ${isMuted ? 'bg-red-500 shadow-red-500/20' : 'bg-white/5 text-white hover:bg-white/10'}`} title="Toggle Mute">
+            <button 
+              onClick={toggleMute} 
+              className={`p-6 rounded-full transition-all hover:scale-110 ${isMuted ? 'bg-red-500 shadow-red-500/20' : 'bg-white/5 text-white hover:bg-white/10'}`}
+              title={isMuted ? "Unmute Microphone" : "Mute Microphone"}
+            >
                 {isMuted ? <MicOff/> : <Mic/>}
             </button>
-            <button onClick={() => setIsVideoOff(!isVideoOff)} className={`p-6 rounded-full transition-all hover:scale-110 ${isVideoOff ? 'bg-red-500 shadow-red-500/20' : 'bg-white/5 text-white hover:bg-white/10'}`} title="Toggle Video">
+            <button 
+              onClick={toggleVideo} 
+              className={`p-6 rounded-full transition-all hover:scale-110 ${isVideoOff ? 'bg-red-500 shadow-red-500/20' : 'bg-white/5 text-white hover:bg-white/10'}`}
+              title={isVideoOff ? "Turn On Camera" : "Turn Off Camera"}
+            >
                 {isVideoOff ? <VideoOff/> : <Video/>}
             </button>
-            <button onClick={() => navigate(user?.role === 'Doctor' ? '/doctor-dashboard' : '/patient-dashboard')} className="p-6 bg-red-600 rounded-full text-white hover:scale-125 transition-all shadow-[0_0_40px_rgba(220,38,38,0.4)]" title="End Visit">
+            <button 
+              onClick={() => navigate(user?.role === 'Doctor' ? '/doctor-dashboard' : '/patient-dashboard')} 
+              className="p-6 bg-red-600 rounded-full text-white hover:scale-125 transition-all shadow-[0_0_40px_rgba(220,38,38,0.4)]" 
+              title="End Visit"
+            >
                 <PhoneOff/>
             </button>
         </div>
       </div>
 
-      {/* 3. TRANSCRIPT LOG (CHAT) */}
       <div className="w-full md:w-[400px] bg-white flex flex-col shadow-[0_0_50px_rgba(0,0,0,0.1)] z-20">
         <div className="p-8 border-b flex justify-between items-center bg-slate-50/50">
             <div>

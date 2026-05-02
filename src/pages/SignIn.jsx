@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Mail, Lock, ArrowRight, ShieldCheck } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { Mail, Lock, ArrowRight, Eye, EyeOff } from 'lucide-react';
+import { motion } from 'framer-motion';
 import toast, { Toaster } from 'react-hot-toast';
 import InteractiveLogo from '../components/InteractiveLogo';
 import { useAuth } from '../context/AuthContext';
@@ -12,9 +12,10 @@ const SignIn = () => {
   const [role, setRole] = useState('Patient');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [otp, setOtp] = useState('');
-  const [otpSent, setOtpSent] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const [bgImage, setBgImage] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [errors, setErrors] = useState({});
   const navigate = useNavigate();
 
   const hospitalImages = useMemo(() => [
@@ -27,54 +28,90 @@ const SignIn = () => {
     setBgImage(hospitalImages[Math.floor(Math.random() * hospitalImages.length)]);
   }, [hospitalImages]);
 
+  const validateEmail = (email) => {
+    const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return re.test(email);
+  };
+
+  const validateForm = () => {
+    const newErrors = {};
+    
+    if (!email.trim()) {
+      newErrors.email = 'Email is required';
+    } else if (!validateEmail(email)) {
+      newErrors.email = 'Please enter a valid email';
+    }
+
+    if (!password) {
+      newErrors.password = 'Password is required';
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
   const handleAction = async (e) => {
     e.preventDefault();
-    if (!email) return toast.error("Please enter your email");
+    if (!validateForm()) return;
 
-    if (role === 'Patient') {
-      if (!otpSent) {
-        const loadToast = toast.loading("Connecting to secure server...");
-        try {
-          const res = await axios.post('https://clinico-backend-7a06.onrender.com/api/send-otp', { email });
-          toast.dismiss(loadToast);
-          if (res.data.success) {
-            setOtpSent(true);
-            window.generatedOtp = res.data.secret.toString();
-            toast.success("OTP has been sent to your email address");
-          }
-        } catch (err) {
-          toast.dismiss(loadToast);
-          toast.error("Server connection failed! Please check backend.");
-        }
-      } else {
-        if (otp === window.generatedOtp) {
-          login({ email, role: 'Patient', firstName: email.split('@')[0] });
+    setLoading(true);
+
+    try {
+      if (role === 'Patient') {
+        const res = await axios.post(`http://localhost:5000/api/login`, {
+          email,
+          password,
+          role: 'patient'
+        });
+
+        if (res.data.success) {
+          login({ 
+            ...res.data.user, 
+            role: 'Patient',
+            token: res.data.token
+          });
+          localStorage.setItem('clinicoUser', JSON.stringify({ ...res.data.user, role: 'Patient' }));
           toast.success("Login Successful");
           navigate('/patient-dashboard');
+        }
+      } else if (role === 'Doctor') {
+        const res = await axios.post(`http://localhost:5000/api/login`, {
+          email,
+          password,
+          role: 'doctor'
+        });
+
+        if (res.data.success) {
+          login({ 
+            ...res.data.user, 
+            role: 'Doctor',
+            token: res.data.token
+          });
+          localStorage.setItem('clinicoUser', JSON.stringify({ ...res.data.user, role: 'Doctor' }));
+          toast.success("Doctor Access Authorized");
+          navigate('/doctor-dashboard');
+        }
+      } else if (role === 'Admin') {
+        const ADMIN_EMAIL = 'Admin@gmail.com';
+        const ADMIN_PASSWORD = '123456';
+
+        if (email === ADMIN_EMAIL && password === ADMIN_PASSWORD) {
+          login({ 
+            name: 'System Admin',
+            email: ADMIN_EMAIL,
+            role: 'Admin'
+          });
+          localStorage.setItem('clinicoUser', JSON.stringify({ name: 'System Admin', email: ADMIN_EMAIL, role: 'Admin' }));
+          toast.success("Admin Access Authorized");
+          navigate('/admin-panel');
         } else {
-          toast.error("Invalid OTP! Access Denied.");
+          toast.error("Invalid Admin Credentials");
         }
       }
-    } else {
-      // Doctor & Admin Login Logic
-      if (!password) return toast.error("Please enter your password");
-      
-      const extractedName = email.split('@')[0];
-      const formattedName = extractedName.charAt(0).toUpperCase() + extractedName.slice(1);
-
-      const userData = {
-        email: email,
-        role: role,
-        firstName: formattedName,
-        lastName: "Professional",
-        speciality: role === 'Admin' ? "System Admin" : "Senior Medical Consultant",
-        fees: "1200",
-        gender: "Male"
-      };
-
-      login(userData);
-      toast.success(role + " Access Authorized");
-      navigate(role === 'Admin' ? '/admin-panel' : '/doctor-dashboard');
+    } catch (err) {
+      toast.error(err.response?.data?.message || "Login failed");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -106,7 +143,7 @@ const SignIn = () => {
               {['Patient', 'Doctor', 'Admin'].map(r => (
                 <button 
                   key={r} 
-                  onClick={() => {setRole(r); setOtpSent(false)}} 
+                  onClick={() => {setRole(r); setErrors({})}} 
                   className={`px-5 py-2 rounded-xl text-sm font-bold transition-all ${role === r ? 'bg-white shadow-md text-blue-600' : 'text-slate-400'}`}
                 >
                   {r}
@@ -118,25 +155,41 @@ const SignIn = () => {
           <form onSubmit={handleAction} className="space-y-6">
             <div className="relative group">
               <Mail className="absolute left-5 top-5 text-slate-400 group-focus-within:text-blue-500" size={20} />
-              <input required type="email" placeholder="Registered Email Address" value={email} onChange={(e) => setEmail(e.target.value)} className="w-full pl-14 pr-6 py-5 bg-slate-50 border-2 border-transparent rounded-2xl focus:border-blue-500 focus:bg-white outline-none font-bold text-slate-700 shadow-inner" />
+              <input 
+                type="email" 
+                placeholder="Registered Email Address" 
+                value={email} 
+                onChange={(e) => {setEmail(e.target.value); setErrors({...errors, email: ''})}} 
+                className={`w-full pl-14 pr-6 py-5 bg-slate-50 border-2 ${errors.email ? 'border-red-300' : 'border-transparent'} rounded-2xl focus:border-blue-500 focus:bg-white outline-none font-bold text-slate-700 shadow-inner`} 
+              />
+              {errors.email && <p className="text-red-500 text-xs mt-1 ml-2">{errors.email}</p>}
             </div>
 
-            <AnimatePresence mode="wait">
-              {role !== 'Patient' ? (
-                <motion.div key="pass" initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 20 }} className="relative group">
-                  <Lock className="absolute left-5 top-5 text-slate-400 group-focus-within:text-blue-500" size={20} />
-                  <input required type="password" placeholder="Secure Portal Password" value={password} onChange={(e) => setPassword(e.target.value)} className="w-full pl-14 pr-6 py-5 bg-slate-50 border-2 border-transparent rounded-2xl focus:border-blue-500 focus:bg-white outline-none font-bold text-slate-700 shadow-inner" />
-                </motion.div>
-              ) : otpSent && (
-                <motion.div key="otp" initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="relative group">
-                  <ShieldCheck className="absolute left-5 top-5 text-emerald-500" size={20} />
-                  <input required type="text" placeholder="Enter 4-Digit OTP" value={otp} onChange={(e) => setOtp(e.target.value)} className="w-full pl-14 pr-6 py-5 bg-emerald-50 border-2 border-emerald-200 rounded-2xl outline-none font-black text-emerald-700 tracking-[0.5em] text-center" />
-                </motion.div>
-              )}
-            </AnimatePresence>
+            <div className="relative group">
+              <Lock className="absolute left-5 top-5 text-slate-400 group-focus-within:text-blue-500" size={20} />
+              <input 
+                type={showPassword ? "text" : "password"} 
+                placeholder={role === 'Admin' ? "Admin Password (123456)" : "Password"} 
+                value={password} 
+                onChange={(e) => {setPassword(e.target.value); setErrors({...errors, password: ''})}} 
+                className={`w-full pl-14 pr-12 py-5 bg-slate-50 border-2 ${errors.password ? 'border-red-300' : 'border-transparent'} rounded-2xl focus:border-blue-500 focus:bg-white outline-none font-bold text-slate-700 shadow-inner`} 
+              />
+              <button 
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-5 top-5 text-slate-400"
+              >
+                {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+              </button>
+              {errors.password && <p className="text-red-500 text-xs mt-1 ml-2">{errors.password}</p>}
+            </div>
             
-            <button type="submit" className="w-full bg-slate-900 text-white py-5 rounded-2xl font-black text-xl shadow-xl hover:bg-blue-600 transition-all flex items-center justify-center gap-3 active:scale-95 group">
-              {role === 'Patient' ? (otpSent ? 'Verify & Access' : 'Request OTP') : 'Authorize Login'} <ArrowRight size={22} className="group-hover:translate-x-1 transition-transform" />
+            <button 
+              type="submit" 
+              disabled={loading}
+              className="w-full bg-slate-900 text-white py-5 rounded-2xl font-black text-xl shadow-xl hover:bg-blue-600 transition-all flex items-center justify-center gap-3 active:scale-95 group disabled:opacity-50"
+            >
+              {loading ? 'Logging in...' : `Login as ${role}`} <ArrowRight size={22} className="group-hover:translate-x-1 transition-transform" />
             </button>
           </form>
 

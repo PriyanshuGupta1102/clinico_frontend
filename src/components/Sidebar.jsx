@@ -7,16 +7,16 @@ import {
   Settings, 
   LogOut, 
   Bot, 
-  Activity, 
   UserCog,
-  FileText // 👈 Ye wala icon missing tha
+  FileText,
+  Upload,
+  TrendingUp
 } from 'lucide-react';
 import InteractiveLogo from './InteractiveLogo';
 
 const Sidebar = ({ role, activeTab, setActiveTab }) => {
   const navigate = useNavigate();
   
-  // Role based menu items
   const menuItems = {
     Patient: [
       { name: 'Dashboard', id: 'dashboard', icon: <LayoutDashboard size={20}/> },
@@ -34,6 +34,7 @@ const Sidebar = ({ role, activeTab, setActiveTab }) => {
     ],
     Admin: [
   { name: 'Overview', id: 'overview', icon: <LayoutDashboard size={20}/> },
+  { name: 'Payments', id: 'payments', icon: <TrendingUp size={20}/> },
   { name: 'Manage Doctors', id: 'doctors', icon: <UserCog size={20}/> },
   { name: 'Manage Patients', id: 'patients', icon: <Users size={20}/> },
   { name: 'Appointments', id: 'admin-appts', icon: <Calendar size={20}/> },
