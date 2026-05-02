@@ -1,22 +1,25 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { Mic, MicOff, Video, VideoOff, PhoneOff, Send, User, MessageSquare, Loader2 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import toast, { Toaster } from 'react-hot-toast';
 
 const DoctorVideoVisit = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { user } = useAuth();
   const [isMuted, setIsMuted] = useState(false);
   const [isVideoOff, setIsVideoOff] = useState(false);
   const [messages, setMessages] = useState([{ sender: 'System', text: 'Secure line established. Please initiate the consultation.' }]);
   const [input, setInput] = useState("");
   const [canDoctorSpeak, setCanDoctorSpeak] = useState(true);
-  const [interactionStep, setInteractionStep] = useState(0); // 👈 Tracks conversation flow
+  const [interactionStep, setInteractionStep] = useState(0);
   const videoRef = useRef(null);
 
   const myName = "Dr. " + (user?.firstName || 'Professional');
-  const patientName = "Rahul Sharma (Patient)";
+  const patientInfo = location.state?.patient;
+  const patientName = patientInfo ? `${patientInfo.name} (Patient)` : 'Patient';
+  const patientImage = patientInfo?.image || null;
 
   const speakText = (text) => {
     window.speechSynthesis.cancel();
@@ -103,9 +106,15 @@ const DoctorVideoVisit = () => {
       {/* CENTER: PATIENT PLACEHOLDER */}
       <div className="flex-1 relative flex items-center justify-center bg-slate-800 p-10">
         <div className="text-center">
-            <div className="w-56 h-56 bg-slate-700 rounded-full mx-auto flex items-center justify-center border-8 border-white/5 shadow-2xl mb-8 relative">
-                <User size={100} className="text-white/10"/>
-                <div className="absolute inset-0 bg-blue-500/5 animate-pulse rounded-full"></div>
+            <div className="w-56 h-56 bg-slate-700 rounded-full mx-auto flex items-center justify-center border-8 border-white/5 shadow-2xl mb-8 relative overflow-hidden">
+                {patientImage ? (
+                  <img src={patientImage} alt={patientName} className="w-full h-full object-cover" />
+                ) : (
+                  <>
+                    <User size={100} className="text-white/10"/>
+                    <div className="absolute inset-0 bg-blue-500/5 animate-pulse rounded-full"></div>
+                  </>
+                )}
             </div>
             <h2 className="text-white font-black text-3xl italic tracking-tighter">{patientName}</h2>
             <div className="flex items-center justify-center gap-3 mt-4">
