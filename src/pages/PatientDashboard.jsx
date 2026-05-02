@@ -110,7 +110,7 @@ const PatientDashboard = () => {
   const fetchDoctors = async () => {
     try {
       const token = localStorage.getItem('token');
-      const res = await axios.get('http://localhost:5000/api/doctors', {
+      const res = await axios.get('https://clinico-backend-7a06.onrender.com/api/doctors', {
         headers: { Authorization: `Bearer ${token}` }
       });
       if (res.data.success && res.data.doctors.length > 0) {
@@ -147,7 +147,7 @@ const PatientDashboard = () => {
     if (!user || !user.id) return;
     try {
       const token = localStorage.getItem('token');
-      const res = await axios.get(`http://localhost:5000/api/appointments/${user.id}/patient`, {
+      const res = await axios.get(`https://clinico-backend-7a06.onrender.com/api/appointments/${user.id}/patient`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       if (res.data.success) {
@@ -162,7 +162,7 @@ const PatientDashboard = () => {
     if (!user || !user.id) return;
     try {
       const token = localStorage.getItem('token');
-      const res = await axios.get(`http://localhost:5000/api/medical-records/${user.id}`, {
+      const res = await axios.get(`https://clinico-backend-7a06.onrender.com/api/medical-records/${user.id}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       if (res.data.success) {
@@ -235,7 +235,7 @@ const PatientDashboard = () => {
     const loadingToast = toast.loading("Processing Payment...");
     try {
       const token = localStorage.getItem('token');
-      const res = await axios.post('http://localhost:5000/api/appointments', {
+      const res = await axios.post('https://clinico-backend-7a06.onrender.com/api/appointments', {
         patientId: user.id,
         patientName: user?.name || user?.firstName || 'Patient',
         doctorId: bookingDoc.id,
@@ -293,7 +293,7 @@ const PatientDashboard = () => {
       reader.onloadend = async () => {
         try {
           const token = localStorage.getItem('token');
-          const res = await axios.post('http://localhost:5000/api/medical-records', {
+          const res = await axios.post('https://clinico-backend-7a06.onrender.com/api/medical-records', {
             patientId: user.id,
             patientName: user?.name || user?.firstName || 'Patient',
             recordName: file.name.replace(/\.[^/.]+$/, ''),

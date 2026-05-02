@@ -48,7 +48,7 @@ const SignUp = () => {
 
     setLoading(true);
     try {
-      const res = await axios.post(`http://localhost:5000/api/register`, {
+      const res = await axios.post(`https://clinico-backend-7a06.onrender.com/api/register`, {
         name: formData.name,
         email: formData.email,
         password: formData.password,

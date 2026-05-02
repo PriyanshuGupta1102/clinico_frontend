@@ -58,7 +58,7 @@ const SignIn = () => {
 
     try {
       if (role === 'Patient') {
-        const res = await axios.post(`http://localhost:5000/api/login`, {
+        const res = await axios.post(`https://clinico-backend-7a06.onrender.com/api/login`, {
           email,
           password,
           role: 'patient'
@@ -75,7 +75,7 @@ const SignIn = () => {
           navigate('/patient-dashboard');
         }
       } else if (role === 'Doctor') {
-        const res = await axios.post(`http://localhost:5000/api/login`, {
+        const res = await axios.post(`https://clinico-backend-7a06.onrender.com/api/login`, {
           email,
           password,
           role: 'doctor'

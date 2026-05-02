@@ -64,7 +64,7 @@ const DoctorDashboard = () => {
     try {
       if (user?.id) {
         const token = localStorage.getItem('token');
-        const res = await axios.get(`http://localhost:5000/api/appointments/${user.id}/doctor`, {
+        const res = await axios.get(`https://clinico-backend-7a06.onrender.com/api/appointments/${user.id}/doctor`, {
           headers: { Authorization: `Bearer ${token}` }
         });
         if (res.data.success) {

@@ -70,7 +70,7 @@ const DoctorRegister = () => {
 
     setLoading(true);
     try {
-      const res = await axios.post(`http://localhost:5000/api/doctor-register`, {
+      const res = await axios.post(`https://clinico-backend-7a06.onrender.com/api/doctor-register`, {
         firstName: formData.firstName,
         lastName: formData.lastName,
         email: formData.email,

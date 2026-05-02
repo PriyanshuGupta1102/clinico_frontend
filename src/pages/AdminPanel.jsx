@@ -39,10 +39,10 @@ const AdminPanel = () => {
   const fetchAllData = async () => {
     try {
       const [statsRes, doctorsRes, patientsRes, appointmentsRes] = await Promise.all([
-        axios.get('http://localhost:5000/api/stats'),
-        axios.get('http://localhost:5000/api/doctors'),
-        axios.get('http://localhost:5000/api/patients'),
-        axios.get('http://localhost:5000/api/appointments-all')
+        axios.get('https://clinico-backend-7a06.onrender.com/api/stats'),
+        axios.get('https://clinico-backend-7a06.onrender.com/api/doctors'),
+        axios.get('https://clinico-backend-7a06.onrender.com/api/patients'),
+        axios.get('https://clinico-backend-7a06.onrender.com/api/appointments-all')
       ]);
 
       if (statsRes.data.success) {
